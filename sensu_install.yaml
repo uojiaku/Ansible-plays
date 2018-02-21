@@ -6,8 +6,10 @@
   vars:
     erlang_url:
     - https://packages.erlang-solutions.com/erlang-solutions-1.0-1.noarch.rpm
+    erlang_key:
+    - http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
     rabbitmq_url:
-    - https://www.rabbitmq.com/releases/rabbitmq-server/v3.6.1/rabbitmq-server-3.6.1-1.noarch.rpm
+    - https://www.rabbitmq.com/releases/rabbitmq-server/v3.6.15/rabbitmq-server-3.6.15-1.el7.noarch.rpm 
     sensu_services:
     - rabbitmq-server
     - redis
@@ -27,22 +29,25 @@
 
   - name: import erlang key
     rpm_key:
-      name: "{{ item }}"
+      key: "{{ item }}"
       state: present
-    with_items: "{{ erlang_url }}" 
+    with_items: "{{ erlang_key }}"
 
   - name: Install rabbitmq
     yum:
       name: "{{ item }}" 
       state: present
     with_items: "{{ rabbitmq_url }}"
+  - name: start rabbitmq
+    service: 
+      name: rabbitmq-server
+      state: started
 
   - name: rabbitmq config commands
-    command: /usr/sbin/rabbitmqctl "{{ item }}" 
-    with_items: 
-    - 'add_vhost /sensu'
-    - 'add_user sensu secret'
-    - 'set_permissions -p /sensu sensu ".*" ".*" ".*"'
+    shell: | 
+       /usr/sbin/rabbitmqctl add_vhost /sensu
+       /usr/sbin/rabbitmqctl add_user sensu secret
+       /usr/sbin/rabbitmqctl  set_permissions -p /sensu sensu ".*" ".*" ".*"
    
   - name: install redis
     yum:
@@ -53,7 +58,7 @@
     yum_repository:
       name: sensu
       description: sensu repository
-      baseurl: 'http://repos.sensuapp.org/yum/el/$basearch/'
+      baseurl: 'https://sensu.global.ssl.fastly.net/yum/$releasever/$basearch/'
       gpgcheck: no
       enabled: yes
  
@@ -72,7 +77,7 @@
   - name: Start sensu services & components
     service:
       name: "{{ item }}"
-      state: present
+      state: started
     with_items: "{{ sensu_services }}"
 
 

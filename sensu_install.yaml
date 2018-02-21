@@ -7,16 +7,18 @@
   vars:
     erlang_url:
       - https://packages.erlang-solutions.com/erlang-solutions-1.0-1.noarch.rpm
-    gmetad:
-      - 
+    rabbitmq_url:
+      - https://www.rabbitmq.com/releases/rabbitmq-server/v3.6.1/rabbitmq-server-3.6.1-1.noarch.rpm
+    sensu_services:
+      - rabbitmq-server
+      - redis
+      - sensu-server
+      - sensu-api
+      - uchiwa
     sensu_packages:
-      - ganglia
-      - ganglia-gmetad
-      - ganglia-gmond
-
-    ganglia_services:
-      - gmond
-      - gmetad
+      - sensu
+      - uchiwa
+    
   tasks:
   name: Install erlang
   yum:
@@ -32,8 +34,46 @@
 
   name: Install rabbitmq
   yum:
-    name: https://www.rabbitmq.com/releases/rabbitmq-server/v3.6.1/rabbitmq-server-3.6.1-1.noarch.rpm
-  state: present
+    name: "{{ item }}" 
+    state: present
+  with_items: "{{ rabbitmq_url }}"
+
+  name: rabbitmq config commands
+  command: /usr/sbin/rabbitmqctl "{{ item }}" 
+  with_items: 
+   - 'add_vhost /sensu'
+   - 'add_user sensu secret'
+   - 'set_permissions -p /sensu sensu ".*" ".*" ".*"'
+   
+  name: install redis
+  yum:
+    name: redis
+    state: present
+  
+  name: install sensu yum repo
+  yum_repository:
+    name: sensu
+    description: sensu repository
+    baseurl: 'http://repos.sensuapp.org/yum/el/$basearch/'
+    gpgcheck: no
+    enabled: yes
+ 
+  name: install sensu & uchiwa
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ sensu_packages }}"
+
+  name: edit sensu config file
+  template: 
+    src: 
+    dest: /etc/sensu/config.json
+
+  name: Start sensu services & components
+  service:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ sensu_services }}"
 
 
-
+ 

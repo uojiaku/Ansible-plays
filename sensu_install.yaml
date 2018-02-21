@@ -1,0 +1,39 @@
+---
+- hosts: test
+  remote_user: testify
+  become: yes
+  become_method: sudo
+  connection: ssh
+  vars:
+    erlang_url:
+      - https://packages.erlang-solutions.com/erlang-solutions-1.0-1.noarch.rpm
+    gmetad:
+      - 
+    sensu_packages:
+      - ganglia
+      - ganglia-gmetad
+      - ganglia-gmond
+
+    ganglia_services:
+      - gmond
+      - gmetad
+  tasks:
+  name: Install erlang
+  yum:
+    name: "{{ item }}" 
+    state: present
+  with_items: "{{ erlang_url }}"
+
+  name: import erlang key
+  rpm_key:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ erlang_url }}" 
+
+  name: Install rabbitmq
+  yum:
+    name: https://www.rabbitmq.com/releases/rabbitmq-server/v3.6.1/rabbitmq-server-3.6.1-1.noarch.rpm
+  state: present
+
+
+

@@ -1,0 +1,44 @@
+---
+- hosts: test
+  remote_user: testify
+  become: yes
+  become_method: sudo
+  connection: ssh
+  vars:
+    gmond:
+      - 
+    gmetad:
+      - 
+    ganglia_packages:
+      - ganglia
+      - ganglia-gmetad
+      - ganglia-gmond
+
+    ganglia_services:
+      - gmond
+      - gmetad
+  tasks:
+  - name: Install packages
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_item: "{{ ganglia_packages }}"
+
+  - name: Copy gmetad config
+    template:
+      src: /home/testify/gmetad.conf.j2
+      dest: /etc/ganglia/gmetad.conf
+
+
+  - name: Copy gmond config
+    template:
+      src: /home/testify/gmond.conf.j2
+      dest: /etc/ganglia/gmond.conf
+
+  - name: start gmond & gmetad
+    service: 
+      name: "{{ item }}"
+      state: started
+      enabled: yes
+    with_items: "{{ ganglia_services }}"
+

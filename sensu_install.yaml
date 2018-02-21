@@ -1,4 +1,3 @@
----
 - hosts: test
   remote_user: testify
   become: yes
@@ -6,74 +5,75 @@
   connection: ssh
   vars:
     erlang_url:
-      - https://packages.erlang-solutions.com/erlang-solutions-1.0-1.noarch.rpm
+    - https://packages.erlang-solutions.com/erlang-solutions-1.0-1.noarch.rpm
     rabbitmq_url:
-      - https://www.rabbitmq.com/releases/rabbitmq-server/v3.6.1/rabbitmq-server-3.6.1-1.noarch.rpm
+    - https://www.rabbitmq.com/releases/rabbitmq-server/v3.6.1/rabbitmq-server-3.6.1-1.noarch.rpm
     sensu_services:
-      - rabbitmq-server
-      - redis
-      - sensu-server
-      - sensu-api
-      - uchiwa
+    - rabbitmq-server
+    - redis
+    - sensu-server
+    - sensu-api
+    - uchiwa
     sensu_packages:
-      - sensu
-      - uchiwa
+    - sensu
+    - uchiwa
     
   tasks:
-  name: Install erlang
-  yum:
-    name: "{{ item }}" 
-    state: present
-  with_items: "{{ erlang_url }}"
+  - name: Install erlang
+    yum:
+      name: "{{ item }}" 
+      state: present
+    with_items: "{{ erlang_url }}"
 
-  name: import erlang key
-  rpm_key:
-    name: "{{ item }}"
-    state: present
-  with_items: "{{ erlang_url }}" 
+  - name: import erlang key
+    rpm_key:
+      name: "{{ item }}"
+      state: present
+    with_items: "{{ erlang_url }}" 
 
-  name: Install rabbitmq
-  yum:
-    name: "{{ item }}" 
-    state: present
-  with_items: "{{ rabbitmq_url }}"
+  - name: Install rabbitmq
+    yum:
+      name: "{{ item }}" 
+      state: present
+    with_items: "{{ rabbitmq_url }}"
 
-  name: rabbitmq config commands
-  command: /usr/sbin/rabbitmqctl "{{ item }}" 
-  with_items: 
-   - 'add_vhost /sensu'
-   - 'add_user sensu secret'
-   - 'set_permissions -p /sensu sensu ".*" ".*" ".*"'
+  - name: rabbitmq config commands
+    command: /usr/sbin/rabbitmqctl "{{ item }}" 
+    with_items: 
+    - 'add_vhost /sensu'
+    - 'add_user sensu secret'
+    - 'set_permissions -p /sensu sensu ".*" ".*" ".*"'
    
-  name: install redis
-  yum:
-    name: redis
-    state: present
+  - name: install redis
+    yum:
+      name: redis
+      state: present
   
-  name: install sensu yum repo
-  yum_repository:
-    name: sensu
-    description: sensu repository
-    baseurl: 'http://repos.sensuapp.org/yum/el/$basearch/'
-    gpgcheck: no
-    enabled: yes
+  - name: install sensu yum repo
+    yum_repository:
+      name: sensu
+      description: sensu repository
+      baseurl: 'http://repos.sensuapp.org/yum/el/$basearch/'
+      gpgcheck: no
+      enabled: yes
  
-  name: install sensu & uchiwa
-  yum:
-    name: "{{ item }}"
-    state: present
-  with_items: "{{ sensu_packages }}"
+  - name: install sensu & uchiwa
+    yum:
+      name: "{{ item }}"
+      state: present
+    with_items: "{{ sensu_packages }}"
 
-  name: edit sensu config file
-  template: 
-    src: 
-    dest: /etc/sensu/config.json
+  - name: edit sensu config file
+    template: 
+      src: sensu.config.j2
+      dest: /etc/sensu/config.json
+      mode: 0644
 
-  name: Start sensu services & components
-  service:
-    name: "{{ item }}"
-    state: present
-  with_items: "{{ sensu_services }}"
+  - name: Start sensu services & components
+    service:
+      name: "{{ item }}"
+      state: present
+    with_items: "{{ sensu_services }}"
 
 
  

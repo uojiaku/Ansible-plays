@@ -1,0 +1,57 @@
+---
+- hosts: src
+  remote_user: testify
+  become: yes
+  become_method: sudo
+  connection: ssh
+  vars:
+    Url_RPMs:
+    - https://dl.influxdata.com/telegraf/releases/telegraf-1.2.0.x86_64.rpm
+    - https://dl.influxdata.com/influxdb/releases/influxdb-1.2.0.x86_64.rpm
+    TIG:
+    - telegraf 
+    - influxdb
+    - grafana-server
+    fire_ports:
+    - 3000/tcp
+    - 8083/tcp
+    - 8086/tcp
+   
+  tasks:
+  - name: install telegraf & InfluxDB
+    yum:
+      name: "{{ item  }}"
+      state: present
+    with_items: "{{ Url_RPMs }}"
+
+  - name: install grafana repo
+    yum_repository:
+      name: Grafana
+      description: Grafana Repo
+      baseurl: https://packagecloud.io/grafana/stable/el/7/$basearch
+      enabled: yes
+      gpgcheck: no
+  
+  - name: install Grafana
+    yum:
+      name: grafana
+      state: present
+
+  - name: add firewall ports 
+    firewalld:
+      port: "{{ item }}" 
+      permanent: true
+      state: enabled
+    with_items: "{{ fire_ports }}"
+  - name: restart firewalld 
+    service: 
+      name: firewalld 
+      state: restarted
+
+  - name: start telegraf, influxdb, grafana
+    service: 
+      name: "{{ item }}"
+      state: started
+    with_items: "{{ TIG }}"
+  
+ 
